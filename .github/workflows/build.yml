@@ -1,4 +1,4 @@
-name: Build TWA APK
+name: Build Android APK
 
 on:
   push:
@@ -8,37 +8,43 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Setup Node
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: 18
 
       - name: Setup Java
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: 17
 
-      - name: Install Bubblewrap
-        run: npm install -g @bubblewrap/cli
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
 
-      - name: Init Bubblewrap
+      - name: Install dependencies
         run: |
-          bubblewrap init \
-            --manifest https://markdeveloperweb.github.io/vitium/manifest.json \
-            --directory twa-project
-        env:
-          BUBBLEWRAP_SKIP_UPDATE_CHECK: true
+          npm init -y
+          npm install @capacitor/core @capacitor/cli @capacitor/android
+
+      - name: Init Capacitor
+        run: |
+          npx cap init Vitium com.markdeveloperweb.vitium --web-dir www
+          mkdir -p www
+          cp index.html www/index.html
+          npx cap add android
+          npx cap sync
 
       - name: Build APK
         run: |
-          cd twa-project
-          bubblewrap build --skipPwaValidation
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug
 
       - name: Upload APK
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: vitium-apk
-          path: twa-project/app-release-unsigned.apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
